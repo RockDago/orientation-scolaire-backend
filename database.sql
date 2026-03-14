@@ -106,3 +106,17 @@ CREATE TABLE IF NOT EXISTS metier_searches (
     INDEX idx_metier_id   (metier_id),
     INDEX idx_searched_at (searched_at)
 );
+
+INSERT IGNORE INTO utilisateurs (
+    role, nom, prenom, nom_utilisateur, email, telephone, adresse, code_postal, mot_de_passe
+) VALUES (
+    'admin', 
+    'Admin', 
+    'Systeme', 
+    'admin', 
+    'admin@orientation.com', 
+    '0340000000', 
+    'Antananarivo', 
+    '101', 
+    '$2a$12$V03XsJqsNvKUchxmbtpBd.gP843HnDjGQ/MPmlhTvuq0WXpvoPjoG'
+);
