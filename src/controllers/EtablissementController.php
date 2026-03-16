@@ -40,8 +40,8 @@ class EtablissementController
             $errors['mention'] = 'La mention est obligatoire';
         }
 
-        if (empty(trim($data['parcours'] ?? ''))) {
-            $errors['parcours'] = 'Le parcours est obligatoire';
+        if (empty($data['parcours']) || !is_array($data['parcours']) || count($data['parcours']) === 0) {
+            $errors['parcours'] = 'Au moins un parcours est obligatoire';
         }
 
         if (empty(trim($data['metier'] ?? ''))) {

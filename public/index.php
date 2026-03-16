@@ -25,6 +25,7 @@ require_once __DIR__ . '/../src/core/Jwt.php';
 require_once __DIR__ . '/../src/middlewares/AuthMiddleware.php';
 require_once __DIR__ . '/../src/controllers/AuthController.php';
 require_once __DIR__ . '/../src/controllers/ProfileController.php';
+require_once __DIR__ . '/../src/controllers/DomaineController.php';
 require_once __DIR__ . '/../src/controllers/SerieController.php';
 require_once __DIR__ . '/../src/controllers/MentionController.php';
 require_once __DIR__ . '/../src/controllers/ParcoursController.php';
@@ -97,6 +98,13 @@ if ($resource === 'mentions' && $method === 'GET') {
     exit;
 }
 
+if ($resource === 'domaines' && $method === 'GET') {
+    $id !== null
+        ? DomaineController::show($id)
+        : DomaineController::index();
+    exit;
+}
+
 if ($resource === 'series' && $method === 'GET') {
     $id !== null
         ? SerieController::show($id)
@@ -135,6 +143,16 @@ if ($resource === 'profile') {
     match($method) {
         'GET'   => ProfileController::show($currentUser),
         'PUT'   => ProfileController::update($currentUser),
+        default => Response::json(['message' => 'Méthode non autorisée'], 405),
+    };
+    exit;
+}
+
+if ($resource === 'domaines') {
+    match(true) {
+        $method === 'POST'                 => DomaineController::store($currentUser),
+        $method === 'PUT'    && $id !== null => DomaineController::update($id, $currentUser),
+        $method === 'DELETE' && $id !== null => DomaineController::destroy($id, $currentUser),
         default => Response::json(['message' => 'Méthode non autorisée'], 405),
     };
     exit;

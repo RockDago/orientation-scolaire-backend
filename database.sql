@@ -39,6 +39,15 @@ CREATE TABLE IF NOT EXISTS mentions (
 );
 
 
+CREATE TABLE IF NOT EXISTS domaines (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    label VARCHAR(150) NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+
 CREATE TABLE IF NOT EXISTS parcours (
     id INT AUTO_INCREMENT PRIMARY KEY,
     label VARCHAR(200) NOT NULL,
@@ -60,12 +69,14 @@ CREATE TABLE IF NOT EXISTS metiers (
     description TEXT,
     parcours JSON,
     mention VARCHAR(150),
+    domaine VARCHAR(150),
     serie JSON,
     niveau VARCHAR(20),
     parcoursFormation JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+ALTER TABLE metiers ADD COLUMN domaine VARCHAR(255) NOT NULL DEFAULT '' AFTER description;
 
 
 CREATE TABLE IF NOT EXISTS etablissements (
@@ -75,7 +86,8 @@ CREATE TABLE IF NOT EXISTS etablissements (
     region VARCHAR(100),
     type ENUM('Public', 'Privé') DEFAULT 'Public',
     mention VARCHAR(150),
-    parcours VARCHAR(200),
+    domaine VARCHAR(150),
+    parcours JSON,
     metier VARCHAR(200),
     niveau VARCHAR(50),
     duree VARCHAR(20),
@@ -92,10 +104,13 @@ CREATE TABLE IF NOT EXISTS page_views (
     metier_id  INT NULL,
     ip_address VARCHAR(45)  NULL,
     user_agent TEXT         NULL,
+    visitor_id VARCHAR(50)  NULL,
+    client_info JSON        NULL,
     viewed_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_page       (page),
     INDEX idx_viewed_at  (viewed_at),
-    INDEX idx_metier_id  (metier_id)
+    INDEX idx_metier_id  (metier_id),
+    INDEX idx_visitor_id (visitor_id)
 );
 
 CREATE TABLE IF NOT EXISTS metier_searches (

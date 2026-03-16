@@ -15,7 +15,8 @@ class Etablissement
     public static function findAll(): array
     {
         $stmt = self::getDb()->query("SELECT * FROM etablissements ORDER BY nom ASC");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return array_map([self::class, 'formatEtablissement'], $results);
     }
 
     public static function findById(int $id): ?array
@@ -23,15 +24,26 @@ class Etablissement
         $pdo = self::getDb();
         $stmt = $pdo->prepare("SELECT * FROM etablissements WHERE id = ?");
         $stmt->execute([$id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ? self::formatEtablissement($result) : null;
+    }
+
+    private static function formatEtablissement(array $etab): array
+    {
+        if (isset($etab['parcours']) && is_string($etab['parcours'])) {
+            $etab['parcours'] = json_decode($etab['parcours'], true) ?: [];
+        } elseif (!isset($etab['parcours'])) {
+            $etab['parcours'] = [];
+        }
+        return $etab;
     }
 
     public static function create(array $data): int
     {
         $pdo = self::getDb();
         $stmt = $pdo->prepare("
-            INSERT INTO etablissements (nom, province, region, type, mention, parcours, metier, niveau, duree, admission, contact)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO etablissements (nom, province, region, type, mention, domaine, parcours, metier, niveau, duree, admission, contact)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             trim($data['nom']),
@@ -39,7 +51,8 @@ class Etablissement
             trim($data['region'] ?? ''),
             trim($data['type'] ?? 'Public'),
             trim($data['mention'] ?? ''),
-            trim($data['parcours'] ?? ''),
+            trim($data['domaine'] ?? ''),
+            json_encode($data['parcours'] ?? []),
             trim($data['metier'] ?? ''),
             trim($data['niveau'] ?? ''),
             trim($data['duree'] ?? ''),
@@ -54,7 +67,7 @@ class Etablissement
         $pdo = self::getDb();
         $stmt = $pdo->prepare("
             UPDATE etablissements
-            SET nom=?, province=?, region=?, type=?, mention=?, parcours=?, metier=?, niveau=?, duree=?, admission=?, contact=?
+            SET nom=?, province=?, region=?, type=?, mention=?, domaine=?, parcours=?, metier=?, niveau=?, duree=?, admission=?, contact=?
             WHERE id = ?
         ");
         return $stmt->execute([
@@ -63,7 +76,8 @@ class Etablissement
             trim($data['region'] ?? ''),
             trim($data['type'] ?? 'Public'),
             trim($data['mention'] ?? ''),
-            trim($data['parcours'] ?? ''),
+            trim($data['domaine'] ?? ''),
+            json_encode($data['parcours'] ?? []),
             trim($data['metier'] ?? ''),
             trim($data['niveau'] ?? ''),
             trim($data['duree'] ?? ''),
@@ -86,10 +100,11 @@ class Etablissement
         $like = "%{$term}%";
         $stmt = $pdo->prepare("
             SELECT * FROM etablissements
-            WHERE nom LIKE ? OR province LIKE ? OR region LIKE ? OR mention LIKE ? OR parcours LIKE ? OR metier LIKE ?
+            WHERE nom LIKE ? OR province LIKE ? OR region LIKE ? OR mention LIKE ? OR metier LIKE ?
             ORDER BY nom ASC
         ");
-        $stmt->execute([$like, $like, $like, $like, $like, $like]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->execute([$like, $like, $like, $like, $like]);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return array_map([self::class, 'formatEtablissement'], $results);
     }
 }

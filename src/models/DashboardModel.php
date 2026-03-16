@@ -15,23 +15,28 @@ class DashboardModel
     public function recordPageView(string $page, ?int $metierId, ?string $ip, ?string $ua, ?string $visitorId = null, ?array $clientInfo = null): void
     {
         try {
-          
-            if ($ip) {
+            // Uniquement les routes d'accueil
+            if (!str_contains($page, '/acceuil')) {
+                return;
+            }
+
+            // Vérifier l'unicité (IP + UserAgent) ou (VisitorID) pour les dernières 24h
+            if ($ip && $ua) {
                 $stmtCheck = $this->pdo->prepare(
                     "SELECT COUNT(*) FROM page_views
                      WHERE ip_address = :ip
+                       AND user_agent = :ua
                        AND viewed_at >= :since"
                 );
                 $stmtCheck->execute([
                     ':ip'    => $ip,
+                    ':ua'    => $ua,
                     ':since' => date('Y-m-d H:i:s', strtotime('-24 hours')),
                 ]);
                 if ((int) $stmtCheck->fetchColumn() > 0) {
-                    error_log("Visiteur déjà enregistré aujourd'hui (IP: $ip) — ignoré.");
                     return;
                 }
             } elseif ($visitorId) {
-            
                 $stmtCheck = $this->pdo->prepare(
                     "SELECT COUNT(*) FROM page_views
                      WHERE visitor_id = :vid
@@ -42,7 +47,6 @@ class DashboardModel
                     ':since' => date('Y-m-d H:i:s', strtotime('-24 hours')),
                 ]);
                 if ((int) $stmtCheck->fetchColumn() > 0) {
-                    error_log("Visiteur déjà enregistré aujourd'hui (visitor_id: $visitorId) — ignoré.");
                     return;
                 }
             }
