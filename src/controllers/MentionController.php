@@ -38,6 +38,10 @@ class MentionController
             Response::json(['message' => 'Le libellé est obligatoire'], 422);
         }
 
+        if (empty($data['domaine_id'])) {
+            Response::json(['message' => 'Le domaine est obligatoire'], 422);
+        }
+
         if (empty(trim($data['description'] ?? ''))) {
             Response::json(['message' => 'La description est obligatoire'], 422);
         }
@@ -62,6 +66,10 @@ class MentionController
 
         if (empty(trim($data['label'] ?? ''))) {
             Response::json(['message' => 'Le libellé est obligatoire'], 422);
+        }
+
+        if (empty($data['domaine_id'])) {
+            Response::json(['message' => 'Le domaine est obligatoire'], 422);
         }
 
         if (empty(trim($data['description'] ?? ''))) {

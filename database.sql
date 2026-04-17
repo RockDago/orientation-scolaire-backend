@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS series (
 );
 
 
-CREATE TABLE IF NOT EXISTS mentions (
+CREATE TABLE IF NOT EXISTS domaines (
     id INT AUTO_INCREMENT PRIMARY KEY,
     label VARCHAR(150) NOT NULL UNIQUE,
     description TEXT,
@@ -39,12 +39,14 @@ CREATE TABLE IF NOT EXISTS mentions (
 );
 
 
-CREATE TABLE IF NOT EXISTS domaines (
+CREATE TABLE IF NOT EXISTS mentions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     label VARCHAR(150) NOT NULL UNIQUE,
     description TEXT,
+    domaine_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (domaine_id) REFERENCES domaines(id) ON DELETE SET NULL
 );
 
 
@@ -68,15 +70,15 @@ CREATE TABLE IF NOT EXISTS metiers (
     label VARCHAR(200) NOT NULL,
     description TEXT,
     parcours JSON,
-    mention VARCHAR(150),
-    domaine VARCHAR(150),
+    mention JSON,
+    domaine JSON,
     serie JSON,
-    niveau VARCHAR(20),
+    niveau JSON,
     parcoursFormation JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
-ALTER TABLE metiers ADD COLUMN domaine VARCHAR(255) NOT NULL DEFAULT '' AFTER description;
+
 
 
 CREATE TABLE IF NOT EXISTS etablissements (
@@ -85,13 +87,12 @@ CREATE TABLE IF NOT EXISTS etablissements (
     province VARCHAR(100),
     region VARCHAR(100),
     type ENUM('Public', 'Privé') DEFAULT 'Public',
-    mention VARCHAR(150),
-    domaine VARCHAR(150),
+    mention JSON,
+    domaine JSON,
     parcours JSON,
-    metier VARCHAR(200),
-    niveau VARCHAR(50),
-    duree VARCHAR(20),
-    admission VARCHAR(100),
+    metier JSON,
+    niveau JSON,
+    admission JSON,
     contact VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -135,3 +136,14 @@ INSERT IGNORE INTO utilisateurs (
     '101', 
     '$2a$12$V03XsJqsNvKUchxmbtpBd.gP843HnDjGQ/MPmlhTvuq0WXpvoPjoG'
 );
+
+-- ═══════════════════════════════════════════════════════════════════
+-- Table rate limiting : anti brute-force sur le login
+-- ═══════════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    ip_address   VARCHAR(45) NOT NULL,            -- IPv4 ou IPv6
+    tentative_le TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_ip       (ip_address),
+    INDEX idx_ip_date  (ip_address, tentative_le)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

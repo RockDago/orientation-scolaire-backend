@@ -36,28 +36,28 @@ class EtablissementController
             $errors['type'] = "Le type doit être 'Public' ou 'Privé'";
         }
 
-        if (empty(trim($data['mention'] ?? ''))) {
-            $errors['mention'] = 'La mention est obligatoire';
+        if (empty($data['mention']) || !is_array($data['mention']) || count($data['mention']) === 0) {
+            $errors['mention'] = 'Au moins une mention est obligatoire';
+        }
+
+        if (empty($data['domaine']) || !is_array($data['domaine']) || count($data['domaine']) === 0) {
+            $errors['domaine'] = 'Au moins un domaine est obligatoire';
         }
 
         if (empty($data['parcours']) || !is_array($data['parcours']) || count($data['parcours']) === 0) {
             $errors['parcours'] = 'Au moins un parcours est obligatoire';
         }
 
-        if (empty(trim($data['metier'] ?? ''))) {
-            $errors['metier'] = 'Le métier est obligatoire';
+        if (empty($data['metier']) || !is_array($data['metier']) || count($data['metier']) === 0) {
+            $errors['metier'] = 'Au moins un métier est obligatoire';
         }
 
-        if (empty(trim($data['niveau'] ?? ''))) {
-            $errors['niveau'] = 'Le niveau est obligatoire';
+        if (empty($data['niveau']) || !is_array($data['niveau']) || count($data['niveau']) === 0) {
+            $errors['niveau'] = 'Au moins un niveau est obligatoire';
         }
 
-        if (empty(trim($data['duree'] ?? ''))) {
-            $errors['duree'] = 'La durée est obligatoire';
-        }
-
-        if (empty(trim($data['admission'] ?? ''))) {
-            $errors['admission'] = "Le mode d'admission est obligatoire";
+        if (empty($data['admission']) || !is_array($data['admission']) || count($data['admission']) === 0) {
+            $errors['admission'] = "Au moins un mode d'admission est obligatoire";
         }
 
         if (empty(trim($data['contact'] ?? ''))) {

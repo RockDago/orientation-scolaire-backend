@@ -18,7 +18,7 @@ class MetierController
 
     private static function normalizeArrayFields(array &$data): void
     {
-        foreach (['parcours', 'serie', 'parcoursFormation'] as $field) {
+        foreach (['parcours', 'serie', 'parcoursFormation', 'mention', 'domaine', 'niveau'] as $field) {
             if (!isset($data[$field]) || !is_array($data[$field])) {
                 $data[$field] = [];
             }
@@ -58,14 +58,17 @@ class MetierController
         if (count($data['parcours']) === 0)
             $errors['parcours'] = 'Au moins un parcours est obligatoire';
 
-        if (empty(trim($data['mention'] ?? '')))
-            $errors['mention'] = 'La mention est obligatoire';
+        if (count($data['mention']) === 0)
+            $errors['mention'] = 'Au moins une mention est obligatoire';
+
+        if (count($data['domaine']) === 0)
+            $errors['domaine'] = 'Au moins un domaine est obligatoire';
 
         if (count($data['serie']) === 0)
             $errors['serie'] = 'Au moins une série est obligatoire';
 
-        if (empty(trim($data['niveau'] ?? '')))
-            $errors['niveau'] = 'Le niveau est obligatoire';
+        if (count($data['niveau']) === 0)
+            $errors['niveau'] = 'Au moins un niveau est obligatoire';
 
         if (count($data['parcoursFormation']) === 0)
             $errors['parcoursFormation'] = 'Au moins un parcours de formation est obligatoire';
@@ -103,14 +106,17 @@ class MetierController
         if (count($data['parcours']) === 0)
             $errors['parcours'] = 'Au moins un parcours est obligatoire';
 
-        if (empty(trim($data['mention'] ?? '')))
-            $errors['mention'] = 'La mention est obligatoire';
+        if (count($data['mention']) === 0)
+            $errors['mention'] = 'Au moins une mention est obligatoire';
+
+        if (count($data['domaine']) === 0)
+            $errors['domaine'] = 'Au moins un domaine est obligatoire';
 
         if (count($data['serie']) === 0)
             $errors['serie'] = 'Au moins une série est obligatoire';
 
-        if (empty(trim($data['niveau'] ?? '')))
-            $errors['niveau'] = 'Le niveau est obligatoire';
+        if (count($data['niveau']) === 0)
+            $errors['niveau'] = 'Au moins un niveau est obligatoire';
 
         if (count($data['parcoursFormation']) === 0)
             $errors['parcoursFormation'] = 'Au moins un parcours de formation est obligatoire';

@@ -30,10 +30,13 @@ class Etablissement
 
     private static function formatEtablissement(array $etab): array
     {
-        if (isset($etab['parcours']) && is_string($etab['parcours'])) {
-            $etab['parcours'] = json_decode($etab['parcours'], true) ?: [];
-        } elseif (!isset($etab['parcours'])) {
-            $etab['parcours'] = [];
+        $jsonFields = ['parcours', 'mention', 'domaine', 'metier', 'niveau', 'admission'];
+        foreach ($jsonFields as $field) {
+            if (isset($etab[$field]) && is_string($etab[$field])) {
+                $etab[$field] = json_decode($etab[$field], true) ?: [];
+            } elseif (!isset($etab[$field])) {
+                $etab[$field] = [];
+            }
         }
         return $etab;
     }
@@ -42,21 +45,20 @@ class Etablissement
     {
         $pdo = self::getDb();
         $stmt = $pdo->prepare("
-            INSERT INTO etablissements (nom, province, region, type, mention, domaine, parcours, metier, niveau, duree, admission, contact)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO etablissements (nom, province, region, type, mention, domaine, parcours, metier, niveau, admission, contact)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             trim($data['nom']),
             trim($data['province'] ?? ''),
             trim($data['region'] ?? ''),
             trim($data['type'] ?? 'Public'),
-            trim($data['mention'] ?? ''),
-            trim($data['domaine'] ?? ''),
+            json_encode($data['mention'] ?? []),
+            json_encode($data['domaine'] ?? []),
             json_encode($data['parcours'] ?? []),
-            trim($data['metier'] ?? ''),
-            trim($data['niveau'] ?? ''),
-            trim($data['duree'] ?? ''),
-            trim($data['admission'] ?? ''),
+            json_encode($data['metier'] ?? []),
+            json_encode($data['niveau'] ?? []),
+            json_encode($data['admission'] ?? []),
             trim($data['contact'] ?? ''),
         ]);
         return (int) $pdo->lastInsertId();
@@ -67,7 +69,7 @@ class Etablissement
         $pdo = self::getDb();
         $stmt = $pdo->prepare("
             UPDATE etablissements
-            SET nom=?, province=?, region=?, type=?, mention=?, domaine=?, parcours=?, metier=?, niveau=?, duree=?, admission=?, contact=?
+            SET nom=?, province=?, region=?, type=?, mention=?, domaine=?, parcours=?, metier=?, niveau=?, admission=?, contact=?
             WHERE id = ?
         ");
         return $stmt->execute([
@@ -75,13 +77,12 @@ class Etablissement
             trim($data['province'] ?? ''),
             trim($data['region'] ?? ''),
             trim($data['type'] ?? 'Public'),
-            trim($data['mention'] ?? ''),
-            trim($data['domaine'] ?? ''),
+            json_encode($data['mention'] ?? []),
+            json_encode($data['domaine'] ?? []),
             json_encode($data['parcours'] ?? []),
-            trim($data['metier'] ?? ''),
-            trim($data['niveau'] ?? ''),
-            trim($data['duree'] ?? ''),
-            trim($data['admission'] ?? ''),
+            json_encode($data['metier'] ?? []),
+            json_encode($data['niveau'] ?? []),
+            json_encode($data['admission'] ?? []),
             trim($data['contact'] ?? ''),
             $id,
         ]);

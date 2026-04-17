@@ -1,17 +1,38 @@
 <?php
 
-// ─────────────── Afficher toutes les erreurs PHP ───────────────
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+// ─────────────── Gestion des erreurs (sécurité : ne jamais exposer les erreurs aux clients) ───
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
+ini_set('log_errors', 1);
+// Les erreurs sont loguées dans le log Apache/PHP, jamais renvoyées au client
 
+// ─────────────── CORS sécurisé — liste blanche d'origines ───────────────────────────────────
+$allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost',
+    'https://bambaray.mg',
+    'https://dssip.bambaray.mg',
+];
 
-header('Access-Control-Allow-Origin: *');  
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($origin, $allowedOrigins, true)) {
+    header("Access-Control-Allow-Origin: {$origin}");
+} else {
+    // En développement local sans header Origin (Postman, curl), on autorise localhost
+    header('Access-Control-Allow-Origin: http://localhost:5173');
+}
+
 header('Access-Control-Allow-Credentials: true');
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, Accept, X-Requested-With, Origin');
 header('Access-Control-Max-Age: 3600');
 header('Content-Type: application/json; charset=utf-8');
+// En-tête de sécurité supplémentaire
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: strict-origin-when-cross-origin');
 
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -59,10 +80,9 @@ if ($resource === 'login' && $method === 'POST') {
     exit;
 }
 
-if ($resource === 'register' && $method === 'POST') {
-    AuthController::register();
-    exit;
-}
+// NOTE SÉCURITÉ : /register est intentionnellement RETIRÉ des routes publiques.
+// La création de compte admin est désormais protégée par le middleware d'authentification
+// (voir plus bas dans le fichier, après $currentUser = AuthMiddleware::handle()).
 
 if ($resource === 'track-view' && $method === 'POST') {
     DashboardController::trackView();
@@ -129,6 +149,17 @@ if ($resource === 'etablissements' && $method === 'GET') {
 
 $currentUser = AuthMiddleware::handle(); 
 
+
+// ─── /register : PROTÉGÉ — réservé aux admins existants ──────────────────────────────────────
+if ($resource === 'register' && $method === 'POST') {
+    // Seul un admin authentifié peut créer un nouveau compte
+    if (($currentUser['role'] ?? '') !== 'admin') {
+        Response::json(['message' => 'Accès réservé aux administrateurs'], 403);
+        exit;
+    }
+    AuthController::register();
+    exit;
+}
 
 if ($resource === 'dashboard' && $method === 'GET') {
     DashboardController::index($currentUser);  

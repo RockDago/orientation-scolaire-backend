@@ -39,9 +39,12 @@ class Metier
     {
         return [
             ...$metier,
-            'parcours'          => (is_string($metier['parcours'])          ? json_decode($metier['parcours'], true)          : []) ?? [],
-            'serie'             => (is_string($metier['serie'])             ? json_decode($metier['serie'], true)             : []) ?? [],
-            'parcoursFormation' => (is_string($metier['parcoursFormation']) ? json_decode($metier['parcoursFormation'], true) : []) ?? [],
+            'parcours'          => (is_string($metier['parcours'] ?? '')          ? json_decode($metier['parcours'], true)          : ($metier['parcours'] ?? [])) ?? [],
+            'serie'             => (is_string($metier['serie'] ?? '')             ? json_decode($metier['serie'], true)             : ($metier['serie'] ?? [])) ?? [],
+            'parcoursFormation' => (is_string($metier['parcoursFormation'] ?? '') ? json_decode($metier['parcoursFormation'], true) : ($metier['parcoursFormation'] ?? [])) ?? [],
+            'mention'           => (is_string($metier['mention'] ?? '')           ? json_decode($metier['mention'], true)           : ($metier['mention'] ?? [])) ?? [],
+            'domaine'           => (is_string($metier['domaine'] ?? '')           ? json_decode($metier['domaine'], true)           : ($metier['domaine'] ?? [])) ?? [],
+            'niveau'            => (is_string($metier['niveau'] ?? '')            ? json_decode($metier['niveau'], true)            : ($metier['niveau'] ?? [])) ?? [],
         ];
     }
 
@@ -56,10 +59,10 @@ class Metier
             trim($data['label']),
             trim($data['description']  ?? ''),
             json_encode($data['parcours']          ?? [], JSON_UNESCAPED_UNICODE),
-            trim($data['mention']      ?? ''),
-            trim($data['domaine']      ?? ''),
+            json_encode($data['mention']           ?? [], JSON_UNESCAPED_UNICODE),
+            json_encode($data['domaine']           ?? [], JSON_UNESCAPED_UNICODE),
             json_encode($data['serie']             ?? [], JSON_UNESCAPED_UNICODE),
-            trim($data['niveau']       ?? ''),
+            json_encode($data['niveau']            ?? [], JSON_UNESCAPED_UNICODE),
             json_encode($data['parcoursFormation'] ?? [], JSON_UNESCAPED_UNICODE),
         ]);
         // ✅ lastInsertId() sur la même connexion → toujours correct
@@ -78,10 +81,10 @@ class Metier
             trim($data['label']),
             trim($data['description']  ?? ''),
             json_encode($data['parcours']          ?? [], JSON_UNESCAPED_UNICODE),
-            trim($data['mention']      ?? ''),
-            trim($data['domaine']      ?? ''),
+            json_encode($data['mention']           ?? [], JSON_UNESCAPED_UNICODE),
+            json_encode($data['domaine']           ?? [], JSON_UNESCAPED_UNICODE),
             json_encode($data['serie']             ?? [], JSON_UNESCAPED_UNICODE),
-            trim($data['niveau']       ?? ''),
+            json_encode($data['niveau']            ?? [], JSON_UNESCAPED_UNICODE),
             json_encode($data['parcoursFormation'] ?? [], JSON_UNESCAPED_UNICODE),
             $id,
         ]);

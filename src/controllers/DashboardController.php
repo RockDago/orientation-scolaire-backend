@@ -12,7 +12,7 @@ class DashboardController
             $body     = json_decode(file_get_contents('php://input'), true) ?? [];
             $page     = trim($body['page'] ?? '');
             $metierId = isset($body['metier_id']) ? (int) $body['metier_id'] : null;
-            $visitorId = $body['visitor_id'] ?? null;
+            $visitorId  = $body['visitor_id']  ?? null;
             $clientInfo = $body['client_info'] ?? null;
 
             if (!$page) {
@@ -20,12 +20,21 @@ class DashboardController
                 return;
             }
 
-            $ip = $_SERVER['HTTP_X_FORWARDED_FOR']
-                ?? $_SERVER['REMOTE_ADDR']
-                ?? null;
-            $ua = $clientInfo['user_agent']
-                ?? $_SERVER['HTTP_USER_AGENT']
-                ?? null;
+            // CRIT-12 : Valider le champ page — liste blanche + longueur max
+            $allowedPagePattern = '/^[a-zA-Z0-9\/\-_\.]{1,100}$/';
+            if (!preg_match($allowedPagePattern, $page)) {
+                // Limiter à un format sûr : alphanumérique + /-_.
+                Response::json(['message' => 'Paramètre page invalide'], 422);
+                return;
+            }
+
+            $ip = filter_var(
+                $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? null,
+                FILTER_VALIDATE_IP
+            ) ?: null;
+            $ua = $clientInfo['user_agent'] ?? $_SERVER['HTTP_USER_AGENT'] ?? null;
+            // Limiter la longueur du user-agent pour éviter les injections de logs
+            if ($ua && strlen($ua) > 512) $ua = substr($ua, 0, 512);
 
             (new DashboardModel())->recordPageView($page, $metierId, $ip, $ua, $visitorId, $clientInfo);
 

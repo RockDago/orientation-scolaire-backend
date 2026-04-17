@@ -14,14 +14,24 @@ class Mention
 
     public static function findAll(): array
     {
-        $stmt = self::getDb()->query("SELECT * FROM mentions ORDER BY label ASC");
+        $stmt = self::getDb()->query("
+            SELECT m.*, d.label as domaine_label 
+            FROM mentions m 
+            LEFT JOIN domaines d ON m.domaine_id = d.id 
+            ORDER BY m.label ASC
+        ");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public static function findById(int $id): ?array
     {
         $pdo = self::getDb();
-        $stmt = $pdo->prepare("SELECT * FROM mentions WHERE id = ?");
+        $stmt = $pdo->prepare("
+            SELECT m.*, d.label as domaine_label 
+            FROM mentions m 
+            LEFT JOIN domaines d ON m.domaine_id = d.id 
+            WHERE m.id = ?
+        ");
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
@@ -37,16 +47,25 @@ class Mention
     public static function create(array $data): int
     {
         $pdo = self::getDb();
-        $stmt = $pdo->prepare("INSERT INTO mentions (label, description) VALUES (?, ?)");
-        $stmt->execute([trim($data['label']), trim($data['description'] ?? '')]);
+        $stmt = $pdo->prepare("INSERT INTO mentions (label, description, domaine_id) VALUES (?, ?, ?)");
+        $stmt->execute([
+            trim($data['label']), 
+            trim($data['description'] ?? ''),
+            $data['domaine_id'] ?? null
+        ]);
         return (int) $pdo->lastInsertId();
     }
 
     public static function update(int $id, array $data): bool
     {
         $pdo = self::getDb();
-        $stmt = $pdo->prepare("UPDATE mentions SET label = ?, description = ? WHERE id = ?");
-        return $stmt->execute([trim($data['label']), trim($data['description'] ?? ''), $id]);
+        $stmt = $pdo->prepare("UPDATE mentions SET label = ?, description = ?, domaine_id = ? WHERE id = ?");
+        return $stmt->execute([
+            trim($data['label']), 
+            trim($data['description'] ?? ''), 
+            $data['domaine_id'] ?? null,
+            $id
+        ]);
     }
 
     public static function delete(int $id): bool
@@ -60,8 +79,14 @@ class Mention
     {
         $pdo = self::getDb();
         $like = "%{$term}%";
-        $stmt = $pdo->prepare("SELECT * FROM mentions WHERE label LIKE ? OR description LIKE ? ORDER BY label ASC");
-        $stmt->execute([$like, $like]);
+        $stmt = $pdo->prepare("
+            SELECT m.*, d.label as domaine_label 
+            FROM mentions m 
+            LEFT JOIN domaines d ON m.domaine_id = d.id 
+            WHERE m.label LIKE ? OR m.description LIKE ? OR d.label LIKE ? 
+            ORDER BY m.label ASC
+        ");
+        $stmt->execute([$like, $like, $like]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
