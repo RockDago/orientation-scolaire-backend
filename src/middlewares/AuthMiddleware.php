@@ -46,9 +46,11 @@ class AuthMiddleware {
             return $user;
             
         } catch (Exception $e) {
-            // SÉCURITÉ : ne jamais exposer le message d'exception au client
-            error_log('[AuthMiddleware] Token invalide — ' . $e->getMessage());
-            Response::json(['message' => 'Token invalide ou expiré'], 401);
+            // Erreur précise pour debug (à supprimer en prod)
+            Response::json([
+                'message' => 'Token invalide',
+                'error' => $e->getMessage()
+            ], 401);
             exit;
         }
     }
