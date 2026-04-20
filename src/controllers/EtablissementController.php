@@ -60,8 +60,8 @@ class EtablissementController
             $errors['admission'] = "Au moins un mode d'admission est obligatoire";
         }
 
-        if (empty(trim($data['contact'] ?? ''))) {
-            $errors['contact'] = 'Le contact est obligatoire';
+        if (empty($data['contact']) || !is_array($data['contact']) || count($data['contact']) === 0) {
+            $errors['contact'] = 'Au moins un contact est obligatoire';
         }
 
         return $errors;

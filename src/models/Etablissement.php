@@ -30,7 +30,7 @@ class Etablissement
 
     private static function formatEtablissement(array $etab): array
     {
-        $jsonFields = ['parcours', 'mention', 'domaine', 'metier', 'niveau', 'admission'];
+        $jsonFields = ['parcours', 'mention', 'domaine', 'metier', 'niveau', 'admission', 'contact'];
         foreach ($jsonFields as $field) {
             if (isset($etab[$field]) && is_string($etab[$field])) {
                 $etab[$field] = json_decode($etab[$field], true) ?: [];
@@ -59,7 +59,7 @@ class Etablissement
             json_encode($data['metier'] ?? []),
             json_encode($data['niveau'] ?? []),
             json_encode($data['admission'] ?? []),
-            trim($data['contact'] ?? ''),
+            json_encode($data['contact'] ?? []),
         ]);
         return (int) $pdo->lastInsertId();
     }
@@ -83,7 +83,7 @@ class Etablissement
             json_encode($data['metier'] ?? []),
             json_encode($data['niveau'] ?? []),
             json_encode($data['admission'] ?? []),
-            trim($data['contact'] ?? ''),
+            json_encode($data['contact'] ?? []),
             $id,
         ]);
     }

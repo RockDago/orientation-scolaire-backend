@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS etablissements (
     metier JSON,
     niveau JSON,
     admission JSON,
-    contact VARCHAR(100),
+    contact JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
