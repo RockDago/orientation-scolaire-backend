@@ -36,6 +36,20 @@ class EtablissementController
             $errors['type'] = "Le type doit être 'Public' ou 'Privé'";
         }
 
+        if (empty(trim($data['description'] ?? ''))) {
+            $errors['description'] = 'La description est obligatoire';
+        } elseif (strlen(trim($data['description'])) < 50) {
+            $errors['description'] = 'La description doit faire au moins 50 caractères';
+        } elseif (strlen(trim($data['description'])) > 220) {
+            $errors['description'] = 'La description ne doit pas dépasser 220 caractères';
+        }
+
+        if (empty(trim($data['email'] ?? ''))) {
+            $errors['email'] = "L'email est obligatoire";
+        } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors['email'] = "L'email n'est pas valide";
+        }
+
         if (empty($data['mention']) || !is_array($data['mention']) || count($data['mention']) === 0) {
             $errors['mention'] = 'Au moins une mention est obligatoire';
         }

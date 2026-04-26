@@ -45,14 +45,16 @@ class Etablissement
     {
         $pdo = self::getDb();
         $stmt = $pdo->prepare("
-            INSERT INTO etablissements (nom, province, region, type, mention, domaine, parcours, metier, niveau, admission, contact)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO etablissements (nom, province, region, type, description, email, mention, domaine, parcours, metier, niveau, admission, contact)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             trim($data['nom']),
             trim($data['province'] ?? ''),
             trim($data['region'] ?? ''),
             trim($data['type'] ?? 'Public'),
+            trim($data['description'] ?? ''),
+            trim($data['email'] ?? ''),
             json_encode($data['mention'] ?? []),
             json_encode($data['domaine'] ?? []),
             json_encode($data['parcours'] ?? []),
@@ -69,7 +71,7 @@ class Etablissement
         $pdo = self::getDb();
         $stmt = $pdo->prepare("
             UPDATE etablissements
-            SET nom=?, province=?, region=?, type=?, mention=?, domaine=?, parcours=?, metier=?, niveau=?, admission=?, contact=?
+            SET nom=?, province=?, region=?, type=?, description=?, email=?, mention=?, domaine=?, parcours=?, metier=?, niveau=?, admission=?, contact=?
             WHERE id = ?
         ");
         return $stmt->execute([
@@ -77,6 +79,8 @@ class Etablissement
             trim($data['province'] ?? ''),
             trim($data['region'] ?? ''),
             trim($data['type'] ?? 'Public'),
+            trim($data['description'] ?? ''),
+            trim($data['email'] ?? ''),
             json_encode($data['mention'] ?? []),
             json_encode($data['domaine'] ?? []),
             json_encode($data['parcours'] ?? []),

@@ -87,6 +87,8 @@ CREATE TABLE IF NOT EXISTS etablissements (
     province VARCHAR(100),
     region VARCHAR(100),
     type ENUM('Public', 'Privé') DEFAULT 'Public',
+    description TEXT,
+    email VARCHAR(200),
     mention JSON,
     domaine JSON,
     parcours JSON,
