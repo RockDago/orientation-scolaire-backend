@@ -91,4 +91,49 @@ class User {
             'code_postal' => $data['code_postal'] ?? null,
         ]);
     }
+
+    public static function all(): array {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->query("SELECT id, role, nom, prenom, nom_utilisateur, email, telephone, adresse, code_postal, est_actif, cree_le FROM utilisateurs ORDER BY id DESC");
+        return $stmt->fetchAll();
+    }
+
+    public static function update(int $id, array $data): bool {
+        $pdo = Database::getConnection();
+        $sql = "UPDATE utilisateurs SET
+                    nom = :nom,
+                    prenom = :prenom,
+                    nom_utilisateur = :nom_utilisateur,
+                    email = :email
+                WHERE id = :id";
+        $stmt = $pdo->prepare($sql);
+        return $stmt->execute([
+            'id' => $id,
+            'nom' => $data['nom'],
+            'prenom' => $data['prenom'],
+            'nom_utilisateur' => $data['nom_utilisateur'],
+            'email' => $data['email']
+        ]);
+    }
+
+    public static function toggleStatus(int $id, int $status): bool {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("UPDATE utilisateurs SET est_actif = :status WHERE id = :id");
+        return $stmt->execute(['id' => $id, 'status' => $status]);
+    }
+
+    public static function resetPassword(int $id, string $password): bool {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("UPDATE utilisateurs SET mot_de_passe = :password WHERE id = :id");
+        return $stmt->execute([
+            'id' => $id,
+            'password' => password_hash($password, PASSWORD_BCRYPT)
+        ]);
+    }
+
+    public static function delete(int $id): bool {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("DELETE FROM utilisateurs WHERE id = :id");
+        return $stmt->execute(['id' => $id]);
+    }
 }

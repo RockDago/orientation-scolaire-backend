@@ -253,27 +253,39 @@ class DashboardModel
     }
 
 
-    public function getMonthlyVisibilite(): array
+    public function getMonthlyVisibilite(?string $start = null, ?string $end = null): array
     {
         try {
-        
+            $endDateStr = $end ?? date('Y-m-d H:i:s');
+            $startDateStr = $start ?? date('Y-m-d', strtotime("-6 months")) . ' 00:00:00';
+            
+            // Limit to max 12 months for chart readability if "all" is selected
+            if ($start === '2000-01-01 00:00:00') {
+                 $startDateStr = date('Y-m-d', strtotime("-11 months")) . ' 00:00:00';
+            }
+
             $months = [];
-            for ($i = 6; $i >= 0; $i--) {
-                $date = date('Y-m', strtotime("-$i months"));
-                $monthAbbr = date('M', strtotime("-$i months"));
+            $current = strtotime($startDateStr);
+            $limit = strtotime($endDateStr);
+            
+            while ($current <= $limit) {
+                $dateKey = date('Y-m', $current);
+                $monthAbbr = date('M', $current);
                 $monthMap = [
                     'Jan' => 'Janvier', 'Feb' => 'Février', 'Mar' => 'Mars',
                     'Apr' => 'Avril', 'May' => 'Mai', 'Jun' => 'Juin',
                     'Jul' => 'Juillet', 'Aug' => 'Août', 'Sep' => 'Septembre',
                     'Oct' => 'Octobre', 'Nov' => 'Novembre', 'Dec' => 'Décembre',
                 ];
-                $months[$date] = [
+                $months[$dateKey] = [
                     'month' => $monthMap[$monthAbbr] ?? $monthAbbr,
                     'visites' => 0,
                 ];
+                $current = strtotime("+1 month", $current);
+                if (count($months) > 12) break; // Safety limit
             }
 
-            $stmt = $this->pdo->query("
+            $stmt = $this->pdo->prepare("
                 SELECT
                     period,
                     COUNT(*) AS visites
@@ -282,14 +294,14 @@ class DashboardModel
                         DATE_FORMAT(viewed_at, '%Y-%m') AS period,
                         COALESCE(NULLIF(ip_address,''), visitor_id) AS uid
                     FROM page_views
-                    WHERE viewed_at >= DATE_SUB(CURDATE(), INTERVAL 7 MONTH)
+                    WHERE viewed_at BETWEEN :start AND :end
                     GROUP BY period, uid
                 ) AS uniq
                 GROUP BY period
                 ORDER BY period ASC
             ");
+            $stmt->execute([':start' => $startDateStr, ':end' => $endDateStr]);
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
 
             foreach ($data as $row) {
                 if (isset($months[$row['period']])) {
@@ -352,12 +364,12 @@ class DashboardModel
         
             $stmt = $this->pdo->prepare("
                 SELECT
-                    metier_id,
+                    MAX(metier_id) as metier_id,
                     metier_label AS name,
                     COUNT(*)     AS value
                 FROM metier_searches
                 WHERE searched_at BETWEEN :start AND :end
-                GROUP BY metier_id, metier_label
+                GROUP BY metier_label
                 ORDER BY value DESC
                 LIMIT :lim
             ");
@@ -445,6 +457,73 @@ class DashboardModel
         } catch (PDOException $e) {
             error_log("Erreur getViewsByPage: " . $e->getMessage());
             return [];
+        }
+    }
+    public function getMonthlySearchesDetail(?string $start = null, ?string $end = null): array
+    {
+        try {
+            $endDateStr = $end ?? date('Y-m-d H:i:s');
+            $startDateStr = $start ?? date('Y-m-d', strtotime("-6 months")) . ' 00:00:00';
+            
+            if ($start === '2000-01-01 00:00:00') {
+                 $startDateStr = date('Y-m-d', strtotime("-11 months")) . ' 00:00:00';
+            }
+
+            $months = [];
+            $current = strtotime($startDateStr);
+            $limit = strtotime($endDateStr);
+            while ($current <= $limit) {
+                $dateKey = date('Y-m', $current);
+                $monthAbbr = date('M', $current);
+                $months[$dateKey] = ['label' => $monthAbbr, 'data' => []];
+                $current = strtotime("+1 month", $current);
+                if (count($months) > 12) break;
+            }
+
+            // Get top 6 métiers in this range
+            $topMetiers = $this->getTopMetiersRecherches($startDateStr, $endDateStr, 6);
+            $metierNames = array_column($topMetiers, 'name');
+
+            if (empty($metierNames)) return ['labels' => [], 'datasets' => []];
+
+            $placeholders = implode(',', array_fill(0, count($metierNames), '?'));
+            $sql = "SELECT 
+                        DATE_FORMAT(searched_at, '%Y-%m') as period,
+                        metier_label as name,
+                        COUNT(*) as total
+                    FROM metier_searches
+                    WHERE metier_label IN ($placeholders)
+                      AND searched_at BETWEEN ? AND ?
+                    GROUP BY period, metier_label
+                    ORDER BY period ASC";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(array_merge($metierNames, [$startDateStr, $endDateStr]));
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $datasets = [];
+            foreach ($metierNames as $name) {
+                $datasets[$name] = [
+                    'label' => $name,
+                    'data' => array_fill(0, count($months), 0)
+                ];
+            }
+
+            $monthKeys = array_keys($months);
+            foreach ($rows as $row) {
+                $monthIdx = array_search($row['period'], $monthKeys);
+                if ($monthIdx !== false && isset($datasets[$row['name']])) {
+                    $datasets[$row['name']]['data'][$monthIdx] = (int)$row['total'];
+                }
+            }
+
+            return [
+                'labels' => array_column(array_values($months), 'label'),
+                'datasets' => array_values($datasets)
+            ];
+        } catch (PDOException $e) {
+            error_log("Erreur getMonthlySearchesDetail: " . $e->getMessage());
+            return ['labels' => [], 'datasets' => []];
         }
     }
 }

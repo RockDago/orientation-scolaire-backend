@@ -32,6 +32,7 @@ require_once __DIR__ . '/../src/controllers/ParcoursController.php';
 require_once __DIR__ . '/../src/controllers/MetierController.php';
 require_once __DIR__ . '/../src/controllers/EtablissementController.php';
 require_once __DIR__ . '/../src/controllers/DashboardController.php';
+require_once __DIR__ . '/../src/controllers/UserController.php';
 
 
 // ==========================================
@@ -51,7 +52,7 @@ $baseIndex = (isset($parts[0]) && $parts[0] === 'api') ? 1 : 0;
 
 $resource = $parts[$baseIndex] ?? '';
 $id       = isset($parts[$baseIndex + 1]) && is_numeric($parts[$baseIndex + 1]) ? (int) $parts[$baseIndex + 1] : null;
-$sub      = $parts[$baseIndex + 1] ?? '';
+$sub      = $parts[$baseIndex + 2] ?? '';
 
 
 if ($resource === 'login' && $method === 'POST') {
@@ -203,6 +204,22 @@ if ($resource === 'etablissements') {
         $method === 'POST'                 => EtablissementController::store($currentUser),
         $method === 'PUT'    && $id !== null => EtablissementController::update($id, $currentUser),
         $method === 'DELETE' && $id !== null => EtablissementController::destroy($id, $currentUser),
+        default => Response::json(['message' => 'Méthode non autorisée'], 405),
+    };
+    exit;
+}
+
+if ($resource === 'users') {
+    if ($currentUser['role'] !== 'admin') {
+        Response::json(['message' => 'Accès refusé'], 403);
+    }
+    match(true) {
+        $method === 'GET'                  => UserController::index($currentUser),
+        $method === 'POST'                 => AuthController::register(),
+        $method === 'PUT'    && $id !== null => UserController::update($id, $currentUser),
+        $method === 'PATCH'  && $id !== null && $sub === 'status'   => UserController::toggleStatus($id, $currentUser),
+        $method === 'PATCH'  && $id !== null && $sub === 'password' => UserController::resetPassword($id, $currentUser),
+        $method === 'DELETE' && $id !== null => UserController::destroy($id, $currentUser),
         default => Response::json(['message' => 'Méthode non autorisée'], 405),
     };
     exit;

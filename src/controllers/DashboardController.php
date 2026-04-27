@@ -130,10 +130,11 @@ class DashboardController
                     ],
                 ],
                 'charts' => [
-                    'monthly_visibility' => $model->getMonthlyVisibilite(),
+                    'monthly_visibility' => $model->getMonthlyVisibilite($startDate, $endDate),
                     'weekly_activity'    => $model->getWeeklyActivity(),
                     'top_metiers'        => $model->formatTopMetiersForChart($topMetiers),
                     'views_by_page'      => $model->getViewsByPage($startDate, $endDate),
+                    'search_details'     => $model->getMonthlySearchesDetail($startDate, $endDate),
                 ],
                 'period' => [
                     'start' => $startDate,

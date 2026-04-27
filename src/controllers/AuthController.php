@@ -113,6 +113,12 @@ class AuthController
             ], 401);
         }
 
+        if (isset($user['est_actif']) && (int)$user['est_actif'] === 0) {
+            Response::json([
+                'message' => 'Votre compte est désactivé. Veuillez contacter l\'administrateur.'
+            ], 403);
+        }
+
         $config = require __DIR__ . '/../config/database.php';
 
         $payload = [
