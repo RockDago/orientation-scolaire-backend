@@ -15,7 +15,8 @@ class Parcours
     public static function findAll(): array
     {
         $stmt = self::getDb()->query("SELECT * FROM parcours ORDER BY label ASC");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return array_map([self::class, 'formatParcours'], $results);
     }
 
     public static function findById(int $id): ?array
@@ -23,7 +24,28 @@ class Parcours
         $pdo = self::getDb();
         $stmt = $pdo->prepare("SELECT * FROM parcours WHERE id = ?");
         $stmt->execute([$id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ? self::formatParcours($result) : null;
+    }
+
+    private static function formatParcours(array $parcours): array
+    {
+        $jsonFields = ['niveau', 'duree'];
+        foreach ($jsonFields as $field) {
+            if (isset($parcours[$field]) && is_string($parcours[$field])) {
+                $decoded = json_decode($parcours[$field], true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $parcours[$field] = $decoded;
+                } else {
+                    // Fallback for legacy plain string data
+                    $val = trim($parcours[$field]);
+                    $parcours[$field] = $val !== "" ? [$val] : [];
+                }
+            } elseif (!isset($parcours[$field]) || is_null($parcours[$field])) {
+                $parcours[$field] = [];
+            }
+        }
+        return $parcours;
     }
 
     public static function create(array $data): int
@@ -36,8 +58,8 @@ class Parcours
         $stmt->execute([
             trim($data['label']),
             trim($data['mention'] ?? ''),
-            trim($data['duree'] ?? ''),
-            trim($data['niveau'] ?? ''),
+            json_encode($data['duree'] ?? []),
+            json_encode($data['niveau'] ?? []),
             trim($data['conditions'] ?? ''),
             trim($data['description'] ?? ''),
             trim($data['objectifs'] ?? ''),
@@ -56,8 +78,8 @@ class Parcours
         return $stmt->execute([
             trim($data['label']),
             trim($data['mention'] ?? ''),
-            trim($data['duree'] ?? ''),
-            trim($data['niveau'] ?? ''),
+            json_encode($data['duree'] ?? []),
+            json_encode($data['niveau'] ?? []),
             trim($data['conditions'] ?? ''),
             trim($data['description'] ?? ''),
             trim($data['objectifs'] ?? ''),
@@ -79,10 +101,11 @@ class Parcours
         $like = "%{$term}%";
         $stmt = $pdo->prepare("
             SELECT * FROM parcours
-            WHERE label LIKE ? OR mention LIKE ? OR niveau LIKE ?
+            WHERE label LIKE ? OR mention LIKE ?
             ORDER BY label ASC
         ");
-        $stmt->execute([$like, $like, $like]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->execute([$like, $like]);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return array_map([self::class, 'formatParcours'], $results);
     }
 }

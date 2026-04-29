@@ -55,12 +55,8 @@ CREATE TABLE IF NOT EXISTS parcours (
     id INT AUTO_INCREMENT PRIMARY KEY,
     label VARCHAR(200) NOT NULL,
     mention VARCHAR(150),
-    duree VARCHAR(20),
-    niveau VARCHAR(50),
-    conditions TEXT,
-    description TEXT,
-    objectifs TEXT,
-    debouches TEXT,
+    duree JSON,
+    niveau JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

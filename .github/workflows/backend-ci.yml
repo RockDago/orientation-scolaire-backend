@@ -14,11 +14,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Récupérer le code du repo
+      #  Récupérer le code du repo
       - name: Checkout repository
         uses: actions/checkout@v4 
 
-      # 2️⃣ Déploiement direct sur cPanel via FTP
+      #  Déploiement direct sur cPanel via FTP
       - name: Deploy to cPanel via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4  
         with:
