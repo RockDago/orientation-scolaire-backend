@@ -7,12 +7,11 @@ require_once __DIR__ . '/../core/Jwt.php';
 class AuthController
 {
     private static function getRequestData(): array
-    {  
+    {
         $data = $_POST ?: [];
-        
         $rawBody = file_get_contents('php://input');
         $jsonData = json_decode($rawBody, true);
-       
+
         if (is_array($jsonData)) {
             $data = array_merge($data, $jsonData);
         }
@@ -20,15 +19,18 @@ class AuthController
         return $data;
     }
 
-    public static function register(): void
+    public static function register(?array $currentUser = null): void
     {
-        $data = self::getRequestData();
+        if (($currentUser['role'] ?? null) !== 'admin') {
+            Response::json(['message' => 'Acces refuse'], 403);
+        }
 
+        $data = self::getRequestData();
         $requiredFields = ['nom', 'prenom', 'nom_utilisateur', 'email', 'mot_de_passe'];
         $errors = [];
 
         foreach ($requiredFields as $field) {
-            if (empty(trim($data[$field] ?? ''))) {
+            if (empty(trim((string) ($data[$field] ?? '')))) {
                 $errors[$field] = "Le champ $field est obligatoire";
             }
         }
@@ -37,37 +39,41 @@ class AuthController
             $errors['email'] = "L'adresse email est invalide";
         }
 
+        if (!empty($data['mot_de_passe']) && strlen((string) $data['mot_de_passe']) < 12) {
+            $errors['mot_de_passe'] = 'Le mot de passe doit contenir au moins 12 caracteres';
+        }
+
         if (!empty($errors)) {
             Response::json([
                 'message' => 'Erreurs de validation',
-                'errors' => $errors
+                'errors' => $errors,
             ], 422);
         }
 
-        if (User::findByEmail($data['email'])) {
-            Response::json(['message' => 'Email déjà utilisé'], 409);
+        if (User::findByEmail(trim((string) $data['email']))) {
+            Response::json(['message' => 'Email deja utilise'], 409);
         }
 
-        if (User::findByNomUtilisateur($data['nom_utilisateur'])) {
-            Response::json(['message' => 'Nom d’utilisateur déjà utilisé'], 409);
+        if (User::findByNomUtilisateur(trim((string) $data['nom_utilisateur']))) {
+            Response::json(['message' => 'Nom utilisateur deja utilise'], 409);
         }
 
         $id = User::create([
             'role' => 'admin',
-            'nom' => trim($data['nom']),
-            'prenom' => trim($data['prenom']),
-            'nom_utilisateur' => trim($data['nom_utilisateur']),
-            'email' => trim($data['email']),
-            'telephone' => trim($data['telephone'] ?? ''),
-            'adresse' => trim($data['adresse'] ?? ''),
-            'code_postal' => trim($data['code_postal'] ?? ''),
-            'mot_de_passe' => $data['mot_de_passe'],
+            'nom' => trim((string) $data['nom']),
+            'prenom' => trim((string) $data['prenom']),
+            'nom_utilisateur' => trim((string) $data['nom_utilisateur']),
+            'email' => trim((string) $data['email']),
+            'telephone' => trim((string) ($data['telephone'] ?? '')),
+            'adresse' => trim((string) ($data['adresse'] ?? '')),
+            'code_postal' => trim((string) ($data['code_postal'] ?? '')),
+            'mot_de_passe' => (string) $data['mot_de_passe'],
         ]);
 
         $user = User::findById($id);
 
         Response::json([
-            'message' => 'Utilisateur créé avec succès',
+            'message' => 'Utilisateur cree avec succes',
             'utilisateur' => $user,
         ], 201);
     }
@@ -77,61 +83,47 @@ class AuthController
         $data = self::getRequestData();
 
         $identifiant = '';
-        if (isset($data['identifiant']) && trim($data['identifiant']) !== '') {
-            $identifiant = trim($data['identifiant']);
-        } elseif (isset($data['nom_utilisateur']) && trim($data['nom_utilisateur']) !== '') {
-            $identifiant = trim($data['nom_utilisateur']);
-        } elseif (isset($data['email']) && trim($data['email']) !== '') {
-            $identifiant = trim($data['email']);
+        if (isset($data['identifiant']) && trim((string) $data['identifiant']) !== '') {
+            $identifiant = trim((string) $data['identifiant']);
+        } elseif (isset($data['nom_utilisateur']) && trim((string) $data['nom_utilisateur']) !== '') {
+            $identifiant = trim((string) $data['nom_utilisateur']);
+        } elseif (isset($data['email']) && trim((string) $data['email']) !== '') {
+            $identifiant = trim((string) $data['email']);
         }
 
-        $motDePasse = isset($data['mot_de_passe']) ? trim($data['mot_de_passe']) : '';
+        $motDePasse = isset($data['mot_de_passe']) ? trim((string) $data['mot_de_passe']) : '';
 
         if ($identifiant === '' || $motDePasse === '') {
             Response::json([
                 'message' => 'Identifiant et mot de passe obligatoires',
-                'debug_info' => [
-                    'explication' => 'L\'identifiant ou le mot de passe est vide après nettoyage',
-                    'data_final' => $data,
-                    'identifiant_trouve' => $identifiant,
-                    'mdp_trouve' => $motDePasse
-                ]
             ], 422);
         }
 
         $user = User::findByIdentifiant($identifiant);
-
         if (!$user) {
-            Response::json([
-                'message' => 'Aucun utilisateur trouvé avec cet email ou nom d’utilisateur'
-            ], 401);
+            Response::json(['message' => 'Identifiants invalides'], 401);
         }
 
         if (!password_verify($motDePasse, $user['mot_de_passe'])) {
-            Response::json([
-                'message' => 'Mot de passe incorrect'
-            ], 401);
+            Response::json(['message' => 'Identifiants invalides'], 401);
         }
 
-        if (isset($user['est_actif']) && (int)$user['est_actif'] === 0) {
-            Response::json([
-                'message' => 'Votre compte est désactivé. Veuillez contacter l\'administrateur.'
-            ], 403);
+        if (isset($user['est_actif']) && (int) $user['est_actif'] === 0) {
+            Response::json(['message' => 'Votre compte est desactive. Veuillez contacter l administrateur.'], 403);
         }
 
         $config = require __DIR__ . '/../config/database.php';
-
         $payload = [
             'sub' => $user['id'],
             'email' => $user['email'],
             'role' => $user['role'],
-            'exp' => time() + 86400
+            'exp' => time() + 86400,
         ];
 
         $token = Jwt::encode($payload, $config['jwt_secret']);
 
         Response::json([
-            'message' => 'Connexion réussie',
+            'message' => 'Connexion reussie',
             'token' => $token,
             'utilisateur' => [
                 'id' => $user['id'],
@@ -143,7 +135,7 @@ class AuthController
                 'telephone' => $user['telephone'],
                 'adresse' => $user['adresse'],
                 'code_postal' => $user['code_postal'],
-            ]
+            ],
         ]);
     }
 }

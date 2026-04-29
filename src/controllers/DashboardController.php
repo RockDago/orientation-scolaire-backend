@@ -20,12 +20,8 @@ class DashboardController
                 return;
             }
 
-            $ip = $_SERVER['HTTP_X_FORWARDED_FOR']
-                ?? $_SERVER['REMOTE_ADDR']
-                ?? null;
-            $ua = $clientInfo['user_agent']
-                ?? $_SERVER['HTTP_USER_AGENT']
-                ?? null;
+            $ip = $visitorId ? null : ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? null);
+            $ua = $visitorId ? null : ($_SERVER['HTTP_USER_AGENT'] ?? null);
 
             (new DashboardModel())->recordPageView($page, $metierId, $ip, $ua, $visitorId, $clientInfo);
 

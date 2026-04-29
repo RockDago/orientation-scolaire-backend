@@ -52,18 +52,14 @@ class Parcours
     {
         $pdo = self::getDb();
         $stmt = $pdo->prepare("
-            INSERT INTO parcours (label, mention, duree, niveau, conditions, description, objectifs, debouches)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO parcours (label, mention, duree, niveau)
+            VALUES (?, ?, ?, ?)
         ");
         $stmt->execute([
             trim($data['label']),
             trim($data['mention'] ?? ''),
             json_encode($data['duree'] ?? []),
             json_encode($data['niveau'] ?? []),
-            trim($data['conditions'] ?? ''),
-            trim($data['description'] ?? ''),
-            trim($data['objectifs'] ?? ''),
-            trim($data['debouches'] ?? ''),
         ]);
         return (int) $pdo->lastInsertId();
     }
@@ -72,7 +68,7 @@ class Parcours
     {
         $pdo = self::getDb();
         $stmt = $pdo->prepare("
-            UPDATE parcours SET label=?, mention=?, duree=?, niveau=?, conditions=?, description=?, objectifs=?, debouches=?
+            UPDATE parcours SET label=?, mention=?, duree=?, niveau=?
             WHERE id = ?
         ");
         return $stmt->execute([
@@ -80,10 +76,6 @@ class Parcours
             trim($data['mention'] ?? ''),
             json_encode($data['duree'] ?? []),
             json_encode($data['niveau'] ?? []),
-            trim($data['conditions'] ?? ''),
-            trim($data['description'] ?? ''),
-            trim($data['objectifs'] ?? ''),
-            trim($data['debouches'] ?? ''),
             $id,
         ]);
     }
