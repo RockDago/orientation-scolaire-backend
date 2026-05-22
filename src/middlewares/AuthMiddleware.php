@@ -30,6 +30,10 @@ class AuthMiddleware
                 Response::json(['message' => 'Utilisateur introuvable'], 401);
             }
 
+            if (isset($user['est_actif']) && (int) $user['est_actif'] === 0) {
+                Response::json(['message' => 'Compte desactive'], 403);
+            }
+
             return $user;
         } catch (Exception $e) {
             Response::json(['message' => 'Session invalide ou expiree'], 401);

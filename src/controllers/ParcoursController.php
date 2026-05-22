@@ -2,23 +2,46 @@
 
 require_once __DIR__ . '/../models/Parcours.php';
 require_once __DIR__ . '/../core/Response.php';
+require_once __DIR__ . '/../core/ApiHelpers.php';
 
 class ParcoursController
 {
     private static function getRequestData(): array
     {
-        $data = $_POST ?: [];
-        $raw = file_get_contents('php://input');
-        $json = json_decode($raw, true);
-        if (is_array($json)) $data = array_merge($data, $json);
-        return $data;
+        return ApiHelpers::requestData();
+    }
+
+    private static function validate(array $data): array
+    {
+        $errors = [];
+
+        if (empty(trim((string) ($data['label'] ?? '')))) {
+            $errors['label'] = 'Le libelle du parcours est obligatoire';
+        }
+
+        if (empty(trim((string) ($data['mention'] ?? '')))) {
+            $errors['mention'] = 'La mention est obligatoire';
+        }
+
+        if (empty($data['niveau']) || !is_array($data['niveau'])) {
+            $errors['niveau'] = 'Au moins un niveau est obligatoire';
+        }
+
+        if (empty($data['duree']) || !is_array($data['duree'])) {
+            $errors['duree'] = 'Au moins une duree est obligatoire';
+        }
+
+        return $errors;
     }
 
     public static function index(): void
     {
-        $search = $_GET['search'] ?? '';
-        $parcours = $search ? Parcours::search($search) : Parcours::findAll();
-        Response::json(['parcours' => $parcours]);
+        $parcours = ApiHelpers::filterItems(Parcours::findAll(), [
+            'mention' => 'mention',
+            'niveau' => 'niveau',
+            'type' => 'niveau',
+        ]);
+        Response::json(ApiHelpers::listResponse('parcours', $parcours));
     }
 
     public static function show(int $id): void
@@ -27,35 +50,25 @@ class ParcoursController
         if (!$parcours) {
             Response::json(['message' => 'Parcours introuvable'], 404);
         }
-        Response::json(['parcours' => $parcours]);
+
+        Response::json(['parcours' => $parcours, 'data' => $parcours]);
     }
 
     public static function store(): void
     {
         $data = self::getRequestData();
-
-        $errors = [];
-
-        if (empty(trim($data['label'] ?? ''))) {
-            $errors['label'] = 'Le libellé du parcours est obligatoire';
-        }
-
-        if (empty(trim($data['mention'] ?? ''))) {
-            $errors['mention'] = 'La mention est obligatoire';
-        }
+        $errors = self::validate($data);
 
         if (!empty($errors)) {
-            Response::json([
-                'message' => 'Erreurs de validation',
-                'errors'  => $errors
-            ], 422);
+            Response::json(['message' => 'Erreurs de validation', 'errors' => $errors], 422);
         }
 
         $id = Parcours::create($data);
         $parcours = Parcours::findById($id);
         Response::json([
-            'message' => 'Parcours créé avec succès',
-            'parcours' => $parcours
+            'message' => 'Parcours cree avec succes',
+            'parcours' => $parcours,
+            'data' => $parcours,
         ], 201);
     }
 
@@ -67,28 +80,18 @@ class ParcoursController
         }
 
         $data = self::getRequestData();
-
-        $errors = [];
-
-        if (empty(trim($data['label'] ?? ''))) {
-            $errors['label'] = 'Le libellé du parcours est obligatoire';
-        }
-
-        if (empty(trim($data['mention'] ?? ''))) {
-            $errors['mention'] = 'La mention est obligatoire';
-        }
+        $errors = self::validate($data);
 
         if (!empty($errors)) {
-            Response::json([
-                'message' => 'Erreurs de validation',
-                'errors'  => $errors
-            ], 422);
+            Response::json(['message' => 'Erreurs de validation', 'errors' => $errors], 422);
         }
 
         Parcours::update($id, $data);
+        $updated = Parcours::findById($id);
         Response::json([
-            'message' => 'Parcours mis à jour avec succès',
-            'parcours' => Parcours::findById($id)
+            'message' => 'Parcours mis a jour avec succes',
+            'parcours' => $updated,
+            'data' => $updated,
         ]);
     }
 
@@ -100,6 +103,10 @@ class ParcoursController
         }
 
         Parcours::delete($id);
-        Response::json(['message' => 'Parcours supprimé avec succès']);
+        Response::json([
+            'message' => 'Parcours supprime avec succes',
+            'parcours' => $parcours,
+            'data' => $parcours,
+        ]);
     }
 }

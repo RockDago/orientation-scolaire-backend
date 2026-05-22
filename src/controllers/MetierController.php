@@ -2,18 +2,13 @@
 
 require_once __DIR__ . '/../models/Metier.php';
 require_once __DIR__ . '/../core/Response.php';
+require_once __DIR__ . '/../core/ApiHelpers.php';
 
 class MetierController
 {
     private static function getRequestData(): array
     {
-        $raw  = file_get_contents('php://input');
-        $json = json_decode($raw, true);
-        // Axios envoie toujours du JSON — priorité au body JSON
-        if (is_array($json) && !empty($json)) {
-            return $json;
-        }
-        return $_POST ?: [];
+        return ApiHelpers::requestData();
     }
 
     private static function normalizeArrayFields(array &$data): void
@@ -25,112 +20,96 @@ class MetierController
         }
     }
 
+    private static function validate(array $data): array
+    {
+        $errors = [];
+
+        if (empty(trim((string) ($data['label'] ?? '')))) {
+            $errors['label'] = 'Le libelle est obligatoire';
+        }
+
+        if (empty(trim((string) ($data['description'] ?? '')))) {
+            $errors['description'] = 'La description est obligatoire';
+        }
+
+        foreach ([
+            'parcours' => 'Au moins un parcours est obligatoire',
+            'mention' => 'Au moins une mention est obligatoire',
+            'domaine' => 'Au moins un domaine est obligatoire',
+            'serie' => 'Au moins une serie est obligatoire',
+            'niveau' => 'Au moins un niveau est obligatoire',
+            'parcoursFormation' => 'Au moins un parcours de formation est obligatoire',
+        ] as $field => $message) {
+            if (empty($data[$field]) || !is_array($data[$field])) {
+                $errors[$field] = $message;
+            }
+        }
+
+        return $errors;
+    }
+
     public static function index(): void
     {
-        $search  = $_GET['search'] ?? '';
-        $metiers = $search ? Metier::search($search) : Metier::findAll();
-        Response::json(['metiers' => $metiers]);
+        $metiers = ApiHelpers::filterItems(Metier::findAll(), [
+            'mention' => 'mention',
+            'domaine' => 'domaine',
+            'niveau' => 'niveau',
+            'serie' => 'serie',
+            'type' => 'niveau',
+        ]);
+        Response::json(ApiHelpers::listResponse('metiers', $metiers));
     }
 
     public static function show(int $id): void
     {
         $metier = Metier::findById($id);
         if (!$metier) {
-            Response::json(['message' => 'Métier introuvable'], 404);
-            return; // ← return manquant dans l'original
+            Response::json(['message' => 'Metier introuvable'], 404);
         }
-        Response::json(['metier' => $metier]);
+
+        Response::json(['metier' => $metier, 'data' => $metier]);
     }
 
     public static function store(): void
     {
         $data = self::getRequestData();
         self::normalizeArrayFields($data);
-
-        $errors = [];
-
-        if (empty(trim($data['label'] ?? '')))
-            $errors['label'] = 'Le libellé est obligatoire';
-
-        if (empty(trim($data['description'] ?? '')))
-            $errors['description'] = 'La description est obligatoire';
-
-        if (count($data['parcours']) === 0)
-            $errors['parcours'] = 'Au moins un parcours est obligatoire';
-
-        if (count($data['mention']) === 0)
-            $errors['mention'] = 'Au moins une mention est obligatoire';
-
-        if (count($data['domaine']) === 0)
-            $errors['domaine'] = 'Au moins un domaine est obligatoire';
-
-        if (count($data['serie']) === 0)
-            $errors['serie'] = 'Au moins une série est obligatoire';
-
-        if (count($data['niveau']) === 0)
-            $errors['niveau'] = 'Au moins un niveau est obligatoire';
-
-        if (count($data['parcoursFormation']) === 0)
-            $errors['parcoursFormation'] = 'Au moins un parcours de formation est obligatoire';
+        $errors = self::validate($data);
 
         if (!empty($errors)) {
             Response::json(['message' => 'Erreurs de validation', 'errors' => $errors], 422);
-            return; // ← return manquant dans l'original
         }
 
-        // Le modèle gère lui-même json_encode — on passe $data directement
-        $id     = Metier::create($data);
+        $id = Metier::create($data);
         $metier = Metier::findById($id);
-        Response::json(['message' => 'Métier créé avec succès', 'metier' => $metier], 201);
+        Response::json([
+            'message' => 'Metier cree avec succes',
+            'metier' => $metier,
+            'data' => $metier,
+        ], 201);
     }
 
     public static function update(int $id): void
     {
         $metier = Metier::findById($id);
         if (!$metier) {
-            Response::json(['message' => 'Métier introuvable'], 404);
-            return; // ← return manquant dans l'original
+            Response::json(['message' => 'Metier introuvable'], 404);
         }
 
         $data = self::getRequestData();
         self::normalizeArrayFields($data);
-
-        $errors = [];
-
-        if (empty(trim($data['label'] ?? '')))
-            $errors['label'] = 'Le libellé est obligatoire';
-
-        if (empty(trim($data['description'] ?? '')))
-            $errors['description'] = 'La description est obligatoire';
-
-        if (count($data['parcours']) === 0)
-            $errors['parcours'] = 'Au moins un parcours est obligatoire';
-
-        if (count($data['mention']) === 0)
-            $errors['mention'] = 'Au moins une mention est obligatoire';
-
-        if (count($data['domaine']) === 0)
-            $errors['domaine'] = 'Au moins un domaine est obligatoire';
-
-        if (count($data['serie']) === 0)
-            $errors['serie'] = 'Au moins une série est obligatoire';
-
-        if (count($data['niveau']) === 0)
-            $errors['niveau'] = 'Au moins un niveau est obligatoire';
-
-        if (count($data['parcoursFormation']) === 0)
-            $errors['parcoursFormation'] = 'Au moins un parcours de formation est obligatoire';
+        $errors = self::validate($data);
 
         if (!empty($errors)) {
             Response::json(['message' => 'Erreurs de validation', 'errors' => $errors], 422);
-            return; // ← return manquant dans l'original
         }
 
-        // Le modèle gère lui-même json_encode — on passe $data directement
         Metier::update($id, $data);
+        $updated = Metier::findById($id);
         Response::json([
-            'message' => 'Métier mis à jour avec succès',
-            'metier'  => Metier::findById($id)
+            'message' => 'Metier mis a jour avec succes',
+            'metier' => $updated,
+            'data' => $updated,
         ]);
     }
 
@@ -138,10 +117,14 @@ class MetierController
     {
         $metier = Metier::findById($id);
         if (!$metier) {
-            Response::json(['message' => 'Métier introuvable'], 404);
-            return; // ← return manquant dans l'original
+            Response::json(['message' => 'Metier introuvable'], 404);
         }
+
         Metier::delete($id);
-        Response::json(['message' => 'Métier supprimé avec succès']);
+        Response::json([
+            'message' => 'Metier supprime avec succes',
+            'metier' => $metier,
+            'data' => $metier,
+        ]);
     }
 }

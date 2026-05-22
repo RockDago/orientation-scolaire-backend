@@ -30,7 +30,20 @@ class User {
     public static function findById(int $id): ?array {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("
-            SELECT id, role, nom, prenom, nom_utilisateur, email, telephone, adresse, code_postal, cree_le, modifie_le
+            SELECT id, role, nom, prenom, nom_utilisateur, email, telephone, adresse, code_postal, est_actif, cree_le, modifie_le
+            FROM utilisateurs
+            WHERE id = :id
+            LIMIT 1
+        ");
+        $stmt->execute(['id' => $id]);
+        $user = $stmt->fetch();
+        return $user ?: null;
+    }
+
+    public static function findWithPasswordById(int $id): ?array {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("
+            SELECT id, role, nom, prenom, nom_utilisateur, email, telephone, adresse, code_postal, est_actif, mot_de_passe, cree_le, modifie_le
             FROM utilisateurs
             WHERE id = :id
             LIMIT 1

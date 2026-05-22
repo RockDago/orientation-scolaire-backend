@@ -75,6 +75,7 @@ class AuthController
         Response::json([
             'message' => 'Utilisateur cree avec succes',
             'utilisateur' => $user,
+            'data' => $user,
         ], 201);
     }
 
@@ -126,6 +127,17 @@ class AuthController
             'message' => 'Connexion reussie',
             'token' => $token,
             'utilisateur' => [
+                'id' => $user['id'],
+                'role' => $user['role'],
+                'nom' => $user['nom'],
+                'prenom' => $user['prenom'],
+                'nom_utilisateur' => $user['nom_utilisateur'],
+                'email' => $user['email'],
+                'telephone' => $user['telephone'],
+                'adresse' => $user['adresse'],
+                'code_postal' => $user['code_postal'],
+            ],
+            'data' => [
                 'id' => $user['id'],
                 'role' => $user['role'],
                 'nom' => $user['nom'],

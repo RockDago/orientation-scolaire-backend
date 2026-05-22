@@ -2,80 +2,64 @@
 
 require_once __DIR__ . '/../models/Etablissement.php';
 require_once __DIR__ . '/../core/Response.php';
+require_once __DIR__ . '/../core/ApiHelpers.php';
 
 class EtablissementController
 {
     private static function getRequestData(): array
     {
-        $data = $_POST ?: [];
-        $raw = file_get_contents('php://input');
-        $json = json_decode($raw, true);
-        if (is_array($json)) $data = array_merge($data, $json);
-        return $data;
+        return ApiHelpers::requestData();
     }
 
     private static function validate(array $data): array
     {
         $errors = [];
 
-        if (empty(trim($data['nom'] ?? ''))) {
-            $errors['nom'] = "Le nom de l'établissement est obligatoire";
+        if (empty(trim((string) ($data['nom'] ?? '')))) {
+            $errors['nom'] = "Le nom de l'etablissement est obligatoire";
         }
 
-        if (empty(trim($data['province'] ?? ''))) {
+        if (empty(trim((string) ($data['province'] ?? '')))) {
             $errors['province'] = 'La province est obligatoire';
         }
 
-        if (empty(trim($data['region'] ?? ''))) {
-            $errors['region'] = 'La région est obligatoire';
+        if (empty(trim((string) ($data['region'] ?? '')))) {
+            $errors['region'] = 'La region est obligatoire';
         }
 
-        if (empty(trim($data['type'] ?? ''))) {
+        if (empty(trim((string) ($data['type'] ?? '')))) {
             $errors['type'] = 'Le type est obligatoire';
-        } elseif (!in_array($data['type'], ['Public', 'Privé'])) {
-            $errors['type'] = "Le type doit être 'Public' ou 'Privé'";
+        } elseif (!in_array($data['type'], ['Public', 'Prive', 'Privé'], true)) {
+            $errors['type'] = "Le type doit etre Public ou Prive";
         }
 
-        if (empty(trim($data['description'] ?? ''))) {
+        $description = trim((string) ($data['description'] ?? ''));
+        if ($description === '') {
             $errors['description'] = 'La description est obligatoire';
-        } elseif (strlen(trim($data['description'])) < 50) {
-            $errors['description'] = 'La description doit faire au moins 50 caractères';
-        } elseif (strlen(trim($data['description'])) > 220) {
-            $errors['description'] = 'La description ne doit pas dépasser 220 caractères';
+        } elseif (strlen($description) < 50) {
+            $errors['description'] = 'La description doit faire au moins 50 caracteres';
+        } elseif (strlen($description) > 220) {
+            $errors['description'] = 'La description ne doit pas depasser 220 caracteres';
         }
 
-        if (empty(trim($data['email'] ?? ''))) {
+        if (empty(trim((string) ($data['email'] ?? '')))) {
             $errors['email'] = "L'email est obligatoire";
         } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             $errors['email'] = "L'email n'est pas valide";
         }
 
-        if (empty($data['mention']) || !is_array($data['mention']) || count($data['mention']) === 0) {
-            $errors['mention'] = 'Au moins une mention est obligatoire';
-        }
-
-        if (empty($data['domaine']) || !is_array($data['domaine']) || count($data['domaine']) === 0) {
-            $errors['domaine'] = 'Au moins un domaine est obligatoire';
-        }
-
-        if (empty($data['parcours']) || !is_array($data['parcours']) || count($data['parcours']) === 0) {
-            $errors['parcours'] = 'Au moins un parcours est obligatoire';
-        }
-
-        if (empty($data['metier']) || !is_array($data['metier']) || count($data['metier']) === 0) {
-            $errors['metier'] = 'Au moins un métier est obligatoire';
-        }
-
-        if (empty($data['niveau']) || !is_array($data['niveau']) || count($data['niveau']) === 0) {
-            $errors['niveau'] = 'Au moins un niveau est obligatoire';
-        }
-
-        if (empty($data['admission']) || !is_array($data['admission']) || count($data['admission']) === 0) {
-            $errors['admission'] = "Au moins un mode d'admission est obligatoire";
-        }
-
-        if (empty($data['contact']) || !is_array($data['contact']) || count($data['contact']) === 0) {
-            $errors['contact'] = 'Au moins un contact est obligatoire';
+        foreach ([
+            'mention' => 'Au moins une mention est obligatoire',
+            'domaine' => 'Au moins un domaine est obligatoire',
+            'parcours' => 'Au moins un parcours est obligatoire',
+            'metier' => 'Au moins un metier est obligatoire',
+            'niveau' => 'Au moins un niveau est obligatoire',
+            'admission' => "Au moins un mode d'admission est obligatoire",
+            'contact' => 'Au moins un contact est obligatoire',
+        ] as $field => $message) {
+            if (empty($data[$field]) || !is_array($data[$field])) {
+                $errors[$field] = $message;
+            }
         }
 
         return $errors;
@@ -83,21 +67,27 @@ class EtablissementController
 
     public static function index(): void
     {
-        $search = $_GET['search'] ?? '';
-        $etablissements = $search
-            ? Etablissement::search($search)
-            : Etablissement::findAll();
+        $etablissements = ApiHelpers::filterItems(Etablissement::findAll(), [
+            'region' => 'region',
+            'province' => 'province',
+            'mention' => 'mention',
+            'domaine' => 'domaine',
+            'metier' => 'metier',
+            'niveau' => 'niveau',
+            'type' => 'type',
+        ]);
 
-        Response::json(['etablissements' => $etablissements]);
+        Response::json(ApiHelpers::listResponse('etablissements', $etablissements));
     }
 
     public static function show(int $id): void
     {
         $etablissement = Etablissement::findById($id);
         if (!$etablissement) {
-            Response::json(['message' => 'Établissement introuvable'], 404);
+            Response::json(['message' => 'Etablissement introuvable'], 404);
         }
-        Response::json(['etablissement' => $etablissement]);
+
+        Response::json(['etablissement' => $etablissement, 'data' => $etablissement]);
     }
 
     public static function store(): void
@@ -106,17 +96,15 @@ class EtablissementController
         $errors = self::validate($data);
 
         if (!empty($errors)) {
-            Response::json([
-                'message' => 'Erreurs de validation',
-                'errors'  => $errors
-            ], 422);
+            Response::json(['message' => 'Erreurs de validation', 'errors' => $errors], 422);
         }
 
         $id = Etablissement::create($data);
         $etablissement = Etablissement::findById($id);
         Response::json([
-            'message'        => 'Établissement créé avec succès',
-            'etablissement'  => $etablissement
+            'message' => 'Etablissement cree avec succes',
+            'etablissement' => $etablissement,
+            'data' => $etablissement,
         ], 201);
     }
 
@@ -124,23 +112,22 @@ class EtablissementController
     {
         $etablissement = Etablissement::findById($id);
         if (!$etablissement) {
-            Response::json(['message' => 'Établissement introuvable'], 404);
+            Response::json(['message' => 'Etablissement introuvable'], 404);
         }
 
         $data = self::getRequestData();
         $errors = self::validate($data);
 
         if (!empty($errors)) {
-            Response::json([
-                'message' => 'Erreurs de validation',
-                'errors'  => $errors
-            ], 422);
+            Response::json(['message' => 'Erreurs de validation', 'errors' => $errors], 422);
         }
 
         Etablissement::update($id, $data);
+        $updated = Etablissement::findById($id);
         Response::json([
-            'message'       => 'Établissement mis à jour avec succès',
-            'etablissement' => Etablissement::findById($id)
+            'message' => 'Etablissement mis a jour avec succes',
+            'etablissement' => $updated,
+            'data' => $updated,
         ]);
     }
 
@@ -148,10 +135,14 @@ class EtablissementController
     {
         $etablissement = Etablissement::findById($id);
         if (!$etablissement) {
-            Response::json(['message' => 'Établissement introuvable'], 404);
+            Response::json(['message' => 'Etablissement introuvable'], 404);
         }
 
         Etablissement::delete($id);
-        Response::json(['message' => 'Établissement supprimé avec succès']);
+        Response::json([
+            'message' => 'Etablissement supprime avec succes',
+            'etablissement' => $etablissement,
+            'data' => $etablissement,
+        ]);
     }
 }
