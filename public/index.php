@@ -37,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once __DIR__ . '/../src/core/Response.php';
+require_once __DIR__ . '/../src/core/ApiHelpers.php';
 require_once __DIR__ . '/../src/core/Jwt.php';
 require_once __DIR__ . '/../src/middlewares/AuthMiddleware.php';
 require_once __DIR__ . '/../src/controllers/AuthController.php';
